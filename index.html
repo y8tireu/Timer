@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enhanced Timer & Stopwatch with Dark Mode and Full Audio</title>
+  <style>
+    :root {
+      --bg-color: #f0f0f0;
+      --text-color: #000;
+      --container-bg: #fff;
+      --button-bg: #4caf50;
+      --button-text: #fff;
+    }
+
+    [data-theme="dark"] {
+      --bg-color: #121212;
+      --text-color: #fff;
+      --container-bg: #1e1e1e;
+      --button-bg: #4caf50;
+      --button-text: #fff;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    h1, h2 {
+      margin-bottom: 10px;
+    }
+
+    .timer-container, .alarm-container, .stopwatch-container {
+      margin-bottom: 40px;
+      background: var(--container-bg);
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      transition: background-color 0.3s;
+    }
+
+    button {
+      margin: 5px;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      background-color: var(--button-bg);
+      color: var(--button-text);
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    input[type="time"], input[type="text"] {
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    #alarm-list {
+      list-style: none;
+      padding: 0;
+    }
+
+    #alarm-list li {
+      background: #f9f9f9;
+      padding: 10px;
+      margin: 5px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+
+    [data-theme="dark"] #alarm-list li {
+      background: #2c2c2c;
+      border-color: #444;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Enhanced Timer & Stopwatch</h1>
+
+    <!-- Dark Mode Toggle -->
+    <button id="dark-mode-toggle">Toggle Dark Mode</button>
+
+    <!-- Timer Section -->
+    <div class="timer-container">
+      <h2>Timer</h2>
+      <h1 id="timer">00:00:00</h1>
+      <div>
+        <button id="start-timer">Start</button>
+        <button id="pause-timer">Pause</button>
+        <button id="reset-timer">Reset</button>
+      </div>
+    </div>
+
+    <!-- Alarm Section -->
+    <div class="alarm-container">
+      <h2>Set Alarm</h2>
+      <input type="time" id="alarm-time">
+      <input type="text" id="alarm-label" placeholder="Alarm Label">
+      <button id="set-alarm">Set Alarm</button>
+      <button id="stop-alarm" disabled>Stop Alarm</button>
+      <ul id="alarm-list"></ul>
+    </div>
+
+    <!-- Stopwatch Section -->
+    <div class="stopwatch-container">
+      <h2>Stopwatch</h2>
+      <h1 id="stopwatch">00:00:00</h1>
+      <div>
+        <button id="start-stopwatch">Start</button>
+        <button id="pause-stopwatch">Pause</button>
+        <button id="reset-stopwatch">Reset</button>
+      </div>
+    </div>
+
+    <audio id="alarm-sound" src="alarm.mp3"></audio>
+  </div>
+
+  <script>
+    let timerInterval, stopwatchInterval, alarmTimeout;
+    let totalTimerSeconds = 0;
+    let stopwatchSeconds = 0;
+
+    const alarmSound = document.getElementById("alarm-sound");
+    const stopAlarmButton = document.getElementById("stop-alarm");
+
+    // Timer Functions
+    function updateTimerDisplay() {
+      const hours = Math.floor(totalTimerSeconds / 3600);
+      const minutes = Math.floor((totalTimerSeconds % 3600) / 60);
+      const seconds = totalTimerSeconds % 60;
+
+      document.getElementById("timer").textContent =
+        `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+    }
+
+    document.getElementById("start-timer").addEventListener("click", () => {
+      timerInterval = setInterval(() => {
+        totalTimerSeconds++;
+        updateTimerDisplay();
+      }, 1000);
+    });
+
+    document.getElementById("pause-timer").addEventListener("click", () => {
+      clearInterval(timerInterval);
+    });
+
+    document.getElementById("reset-timer").addEventListener("click", () => {
+      clearInterval(timerInterval);
+      totalTimerSeconds = 0;
+      updateTimerDisplay();
+    });
+
+    // Alarm Functions
+    document.getElementById("set-alarm").addEventListener("click", () => {
+      const alarmTime = document.getElementById("alarm-time").value;
+      const alarmLabel = document.getElementById("alarm-label").value || "Alarm";
+
+      if (!alarmTime) {
+        alert("Please set a valid time for the alarm!");
+        return;
+      }
+
+      const alarmList = document.getElementById("alarm-list");
+      const li = document.createElement("li");
+      li.textContent = `${alarmLabel} - ${alarmTime}`;
+      alarmList.appendChild(li);
+
+      const alarmDate = new Date();
+      const [hours, minutes] = alarmTime.split(":").map(Number);
+      alarmDate.setHours(hours, minutes, 0);
+
+      const now = new Date();
+      const timeToAlarm = alarmDate - now;
+
+      if (timeToAlarm > 0) {
+        alarmTimeout = setTimeout(() => {
+          alarmSound.loop = true;
+          alarmSound.play();
+          stopAlarmButton.disabled = false;
+          alert(`${alarmLabel} is ringing!`);
+        }, timeToAlarm);
+      } else {
+        alert("The alarm time has already passed!");
+      }
+    });
+
+    stopAlarmButton.addEventListener("click", () => {
+      alarmSound.pause();
+      alarmSound.currentTime = 0;
+      alarmSound.loop = false;
+      stopAlarmButton.disabled = true;
+    });
+
+    // Stopwatch Functions
+    function updateStopwatchDisplay() {
+      const hours = Math.floor(stopwatchSeconds / 3600);
+      const minutes = Math.floor((stopwatchSeconds % 3600) / 60);
+      const seconds = stopwatchSeconds % 60;
+
+      document.getElementById("stopwatch").textContent =
+        `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+    }
+
+    document.getElementById("start-stopwatch").addEventListener("click", () => {
+      stopwatchInterval = setInterval(() => {
+        stopwatchSeconds++;
+        updateStopwatchDisplay();
+      }, 1000);
+    });
+
+    document.getElementById("pause-stopwatch").addEventListener("click", () => {
+      clearInterval(stopwatchInterval);
+    });
+
+    document.getElementById("reset-stopwatch").addEventListener("click", () => {
+      clearInterval(stopwatchInterval);
+      stopwatchSeconds = 0;
+      updateStopwatchDisplay();
+    });
+
+    // Dark Mode Toggle
+    const darkModeToggle = document.getElementById("dark-mode-toggle");
+    darkModeToggle.addEventListener("click", () => {
+      const currentTheme = document.documentElement.getAttribute("data-theme");
+      const newTheme = currentTheme === "dark" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", newTheme);
+    });
+  </script>
+</body>
+</html>
+
